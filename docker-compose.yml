@@ -1,0 +1,27 @@
+services:
+  voice-attr:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # auto: try the pretrained model, fall back to the heuristic if the
+      # model can't be loaded (e.g. no network to Hugging Face on first
+      # boot). Set to "heuristic" to force the zero-download path, or
+      # "model" to fail loudly if the pretrained model can't load.
+      - MODEL_BACKEND=${MODEL_BACKEND:-auto}
+      - AGE_GENDER_MODEL=${AGE_GENDER_MODEL:-audeering/wav2vec2-large-robust-6-ft-age-gender}
+      - LANGUAGE_ID_MODEL=${LANGUAGE_ID_MODEL:-speechbrain/lang-id-voxlingua107-ecapa}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      # persists downloaded model weights across `docker compose up` runs;
+      # never used for caller audio (that never touches disk at all).
+      - hf-model-cache:/srv/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+
+volumes:
+  hf-model-cache:
